@@ -13,7 +13,17 @@ from telegram.ext import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # --- TEXT ---
-base_text = """Будь ласка, з метою захисту персональних даних...
+base_text = """Будь ласка, з метою захисту персональних данихнадішліть електронною поштою на адресу i.ponomarchuk@adigestore.it необхідну інформацію:
+
+1. Cognome Nome
+2. Indirizzo di residenza
+3. Numero di telefono italiano
+4. WhatsApp
+5. Stato della familia
+6. Professione
+7. Note
+
+Долучіть необхідні документи:
 {docs}
 """
 
@@ -38,7 +48,7 @@ def main_menu_keyboard():
 # --- HANDLERS ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Мене звуть Ірина Гертнер...\nЧим можу Вам допомогти?",
+        "Мене звуть Ірина Гертнер.\nЯ вітаю Вас в офісі фінансових рішень для українців в Італії.\nЧим можу Вам допомогти?",
         reply_markup=main_menu_keyboard()
     )
 
@@ -48,7 +58,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "back":
         await query.edit_message_text(
-            "Мене звуть Ірина Гертнер...\nЧим можу Вам допомогти?",
+            "Мене звуть Ірина Гертнер.\nЯ вітаю Вас в офісі фінансових рішень для українців в Італії.\nЧим можу Вам допомогти?",
             reply_markup=main_menu_keyboard()
         )
         return
@@ -73,7 +83,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Дякую за звернення..."
+        "Дякую за звернення. Після відправки листа я зв'яжусь із Вами телефоном для персональної консультації з Вашого питання.\nІрина Гертнер"
     )
 
 # --- MAIN ---

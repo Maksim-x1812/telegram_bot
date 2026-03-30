@@ -5,7 +5,7 @@ import asyncio
 
 TOKEN = "8735617587:AAG7bXUY4gjHWK0vxoyJnz-AFExodXp3B5s"
 
-app = ApplicationBuilder().token("TOKEN").build()
+app = ApplicationBuilder().token(TOKEN).build()
 # Текст та документи як у нашому робочому варіанті
 base_text = """Будь ласка, з метою захисту персональних даних надішліть електронною поштою на адресу i.ponomarchuk@adigestore.it необхідну інформацію:
 

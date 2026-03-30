@@ -19,7 +19,8 @@ logging.basicConfig(
 )
 
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+#BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = "8735617587:AAEc6beNLSR7joTPA51IaPrhw__Rw2xyXSM"
 
 print("DEBUG TOKEN:", BOT_TOKEN)
 """if not BOT_TOKEN:

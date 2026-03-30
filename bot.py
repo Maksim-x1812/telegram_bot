@@ -9,7 +9,8 @@ import asyncio
 #python -m pip install --upgrade pip
 # pip install python-telegram-bot==20.7
 # pip3 install python-telegram-bot==20.7
-
+#$env:BOT_TOKEN="123456:ABC..."
+#python main.py
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 

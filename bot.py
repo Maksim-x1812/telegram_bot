@@ -5,12 +5,18 @@ from telegram.ext import (
     MessageHandler, filters, ContextTypes
 )
 import asyncio
+import logging
 
 #python -m pip install --upgrade pip
 # pip install python-telegram-bot==20.7
 # pip3 install python-telegram-bot==20.7
 #$env:BOT_TOKEN="123456:ABC..."
 #python main.py
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
@@ -100,3 +106,8 @@ app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_reply))
 
 app.run_polling()
+while True:
+    try:
+        app.run_polling()
+    except Exception as e:
+        print(f"Error: {e}")

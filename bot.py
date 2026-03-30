@@ -4,6 +4,7 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes
 )
+import asyncio
 
 #python -m pip install --upgrade pip
 # pip install python-telegram-bot==20.7

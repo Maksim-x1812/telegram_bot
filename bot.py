@@ -18,10 +18,13 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+print("DEBUG TOKEN:", BOT_TOKEN)
+
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables")
-
 print("DEBUG TOKEN:", BOT_TOKEN)
 # --- TEXT ---
 base_text = """Будь ласка, з метою захисту персональних данихнадішліть електронною поштою на адресу i.ponomarchuk@adigestore.it необхідну інформацію:
@@ -107,8 +110,8 @@ app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_reply))
 
 app.run_polling()
-while True:
+"""while True:
     try:
         app.run_polling()
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}")"""

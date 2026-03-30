@@ -22,10 +22,9 @@ logging.basicConfig(
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 print("DEBUG TOKEN:", BOT_TOKEN)
+"""if not BOT_TOKEN:
+    raise ValueError("No BOT_TOKEN found in environment variables")"""
 
-if not BOT_TOKEN:
-    raise ValueError("No BOT_TOKEN found in environment variables")
-print("DEBUG TOKEN:", BOT_TOKEN)
 # --- TEXT ---
 base_text = """Будь ласка, з метою захисту персональних данихнадішліть електронною поштою на адресу i.ponomarchuk@adigestore.it необхідну інформацію:
 

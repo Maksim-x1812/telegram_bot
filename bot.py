@@ -31,6 +31,11 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("No DATABASE_URL found")
+
+print("DEBUG DB:", DATABASE_URL)
+
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
 

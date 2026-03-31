@@ -24,35 +24,36 @@ logging.basicConfig(
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cur = conn.cursor()
 
+# User info table
 cur.execute("""
-CREATE TABLE IF NOT EXISTS user_files (
+CREATE TABLE IF NOT EXISTS user_requests (
     id SERIAL PRIMARY KEY,
     user_id BIGINT,
     username TEXT,
     topic TEXT,
+    cognome_nome TEXT,
+    indirizzo TEXT,
+    telefono TEXT,
+    whatsapp TEXT,
+    stato_familia TEXT,
+    professione TEXT,
+    note TEXT,
+    created_at TIMESTAMP
+)
+""")
+
+# Files table
+cur.execute("""
+CREATE TABLE IF NOT EXISTS user_files (
+    id SERIAL PRIMARY KEY,
+    request_id INT,
     file_path TEXT,
     created_at TIMESTAMP
 )
 """)
 conn.commit()
 
-# --- TEXT ---
-base_text = """Будь ласка, надішліть на email i.ponomarchuk@adigestore.it:
-
-1. Cognome Nome
-2. Indirizzo di residenza
-3. Numero di telefono italiano
-4. WhatsApp
-5. Stato della familia
-6. Professione
-7. Note
-
-📎 Документи:
-{docs}
-
-⬇️ Або надішліть документи прямо тут.
-"""
-
+# --- TEXT & DOCS ---
 docs_map = {
     "AUTO": "Carta d'identità\nPatente\nLibretto",
     "CASA": "Carta d'identità",
@@ -62,6 +63,16 @@ docs_map = {
     "PENSIONE": "Carta d'identità",
     "LUCE/GAS": "Carta d'identità\nBollette"
 }
+
+questions = [
+    ("cognome_nome", "1. Введіть ваше ім'я та прізвище:"),
+    ("indirizzo", "2. Введіть вашу адресу проживання:"),
+    ("telefono", "3. Введіть номер телефону італійський:"),
+    ("whatsapp", "4. Введіть ваш WhatsApp:"),
+    ("stato_familia", "5. Введіть ваш сімейний стан:"),
+    ("professione", "6. Введіть вашу професію:"),
+    ("note", "7. Будь-які додаткові нотатки:")
+]
 
 # --- KEYBOARD ---
 def main_menu_keyboard():
@@ -75,13 +86,11 @@ def main_menu_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
-        "Мене звуть Ірина Гертнер.\n"
-        "Я вітаю Вас в офісі фінансових рішень.\n"
-        "Чим можу Вам допомогти?",
+        "Мене звуть Ірина Гертнер.\nЧим можу Вам допомогти?",
         reply_markup=main_menu_keyboard()
     )
 
-# --- BUTTON HANDLER ---
+# --- BUTTON ---
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -110,103 +119,42 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- FINAL SELECTION ---
     topic = query.data
-    context.user_data["state"] = "WAITING_FOR_FILES"
     context.user_data["topic"] = topic
-    context.user_data["files"] = []
-
-    docs = docs_map.get(topic, "Документи не визначені")
-
-    kb = [
-        [InlineKeyboardButton("✅ Завершити", callback_data="done")],
-        [InlineKeyboardButton("Назад", callback_data="back")]
-    ]
+    context.user_data["answers"] = {}
+    context.user_data["current_q"] = 0
+    context.user_data["state"] = "FILLING_FORM"
 
     await query.edit_message_text(
-        f"📌 Тема: {topic}\n\n"
-        + base_text.format(docs=docs)
-        + "\n\n📎 Надішліть файли тут.",
-        reply_markup=InlineKeyboardMarkup(kb)
+        f"📌 Тема: {topic}\n\nПочнемо вводити вашу інформацію."
     )
 
-# --- FILE HANDLER ---
-async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("state") != "WAITING_FOR_FILES":
-        await update.message.reply_text("❗ Спочатку оберіть послугу.")
-        return
+    # Ask first question
+    key, text = questions[0]
+    await query.message.reply_text(text)
 
-    user = update.message.from_user
-    doc = update.message.document
-    topic = context.user_data["topic"]
+# --- HANDLE TEXT (FORM FILLING) ---
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    state = context.user_data.get("state")
 
-    file = await context.bot.get_file(doc.file_id)
+    if state == "FILLING_FORM":
+        idx = context.user_data["current_q"]
+        key, _ = questions[idx]
 
-    os.makedirs("downloads", exist_ok=True)
-    file_path = f"downloads/{user.id}_{topic}_{doc.file_name}"
+        context.user_data["answers"][key] = update.message.text
+        idx += 1
 
-    await file.download_to_drive(file_path)
-
-    # Save to DB
-    cur.execute(
-        """INSERT INTO user_files 
-        (user_id, username, topic, file_path, created_at)
-        VALUES (%s, %s, %s, %s, %s)""",
-        (user.id, user.username, topic, file_path, datetime.now())
-    )
-    conn.commit()
-
-    context.user_data["files"].append(file_path)
-
-    await update.message.reply_text(
-        f"✅ Файл отримано ({len(context.user_data['files'])})\n"
-        "Надішліть ще або натисніть «Завершити»."
-    )
-
-# --- FINISH ---
-async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    if query.data != "done":
-        return
-
-    user = query.from_user
-    topic = context.user_data.get("topic")
-    files = context.user_data.get("files", [])
-
-    if not files:
-        await query.answer("❗ Ви не надіслали файли", show_alert=True)
-        return
-
-    # Notify admin
-    msg = (
-        f"📥 Новий клієнт\n"
-        f"👤 @{user.username}\n"
-        f"🆔 {user.id}\n"
-        f"📂 {topic}\n"
-        f"📎 {len(files)} файлів"
-    )
-
-    await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
-
-    # Send files to admin
-    for f in files:
-        try:
-            await context.bot.send_document(chat_id=ADMIN_ID, document=open(f, "rb"))
-        except Exception as e:
-            print("Error sending file:", e)
-
-    context.user_data.clear()
-
-    await query.edit_message_text(
-        "✅ Дякую! Я зв'яжусь з Вами 📞",
-        reply_markup=main_menu_keyboard()
-    )
-
-# --- TEXT REPLY ---
-async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("state") == "WAITING_FOR_FILES":
+        if idx < len(questions):
+            context.user_data["current_q"] = idx
+            await update.message.reply_text(questions[idx][1])
+        else:
+            # All questions answered → ask for documents
+            context.user_data["state"] = "WAITING_FOR_FILES"
+            await update.message.reply_text(
+                "Дякую! Тепер надішліть документи (можна кілька файлів)."
+            )
+    elif state == "WAITING_FOR_FILES":
         await update.message.reply_text(
-            "📎 Будь ласка, надішліть документи або натисніть «Завершити»."
+            "📎 Будь ласка, надішліть файли або натисніть /done коли завершите."
         )
     else:
         await update.message.reply_text(
@@ -214,17 +162,95 @@ async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_menu_keyboard()
         )
 
+# --- HANDLE DOCUMENTS ---
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("state") != "WAITING_FOR_FILES":
+        await update.message.reply_text("❗ Спочатку оберіть послугу та заповніть дані.")
+        return
+
+    user = update.message.from_user
+    doc = update.message.document
+    topic = context.user_data["topic"]
+
+    os.makedirs("downloads", exist_ok=True)
+    file_path = f"downloads/{user.id}_{topic}_{doc.file_name}"
+
+    file = await context.bot.get_file(doc.file_id)
+    await file.download_to_drive(file_path)
+
+    # Save in session
+    if "files" not in context.user_data:
+        context.user_data["files"] = []
+    context.user_data["files"].append(file_path)
+
+    await update.message.reply_text(
+        f"✅ Файл отримано ({len(context.user_data['files'])})"
+    )
+
+# --- FINISH FORM ---
+async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("state") != "WAITING_FOR_FILES":
+        await update.message.reply_text("❗ Спочатку оберіть послугу та заповніть дані.")
+        return
+
+    user = update.message.from_user
+    topic = context.user_data["topic"]
+    answers = context.user_data.get("answers", {})
+    files = context.user_data.get("files", [])
+
+    # Save form to DB
+    cur.execute(
+        """INSERT INTO user_requests
+        (user_id, username, topic, cognome_nome, indirizzo, telefono, whatsapp, stato_familia, professione, note, created_at)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        RETURNING id""",
+        (
+            user.id, user.username, topic,
+            answers.get("cognome_nome"),
+            answers.get("indirizzo"),
+            answers.get("telefono"),
+            answers.get("whatsapp"),
+            answers.get("stato_familia"),
+            answers.get("professione"),
+            answers.get("note"),
+            datetime.now()
+        )
+    )
+    request_id = cur.fetchone()[0]
+    conn.commit()
+
+    # Save files to DB
+    for f in files:
+        cur.execute(
+            "INSERT INTO user_files (request_id, file_path, created_at) VALUES (%s,%s,%s)",
+            (request_id, f, datetime.now())
+        )
+    conn.commit()
+
+    # Notify admin
+    msg = f"📥 Новий клієнт\n👤 @{user.username}\n🆔 {user.id}\n📂 {topic}\n📎 {len(files)} файлів"
+    await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
+    for f in files:
+        try:
+            await context.bot.send_document(chat_id=ADMIN_ID, document=open(f, "rb"))
+        except: pass
+
+    context.user_data.clear()
+    await update.message.reply_text("✅ Дякую! Дані та файли отримані.", reply_markup=main_menu_keyboard())
+
 # --- MAIN ---
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(finish, pattern="^done$"))
+app.add_handler(CommandHandler("done", done))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_reply))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-print("🤖 Bot is running...")
+print("Bot is running...")
 app.run_polling()
+
+
 """while True:
     try:
         app.run_polling()

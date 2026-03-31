@@ -83,7 +83,7 @@ def main_menu_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
-        "Мене звуть Ірина Гертнер.\nЧим можу Вам допомогти?",
+        "Мене звуть Ірина Гертнер.\nЯ вітаю Вас в офісі фінансових рішень для українців в Італії\nЧим можу Вам допомогти?",
         reply_markup=main_menu_keyboard()
     )
 
@@ -95,7 +95,7 @@ async def finish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if context.user_data.get("state") != "WAITING_FOR_FILES":
-        await query.answer("Спочатку завершіть форму.", show_alert=True)
+        await query.answer("Спочатку будь ласка завершіть форму.", show_alert=True)
         return
 
     user = query.from_user

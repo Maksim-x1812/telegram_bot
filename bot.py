@@ -254,9 +254,12 @@ async def finish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_document(chat_id=ADMIN_ID, document=open(f, "rb"))
         except: pass
 
+    # CLEAR SESSION BEFORE SHOWING MAIN MENU
     context.user_data.clear()
+
+    # Send main menu fresh
     await query.edit_message_text(
-        "✅ Дякую! Дані та файли отримані.",
+        "✅ Дякую! Дані та файли отримані.\n\nЧим можу Вам допомогти далі?",
         reply_markup=main_menu_keyboard()
     )
 
@@ -269,7 +272,7 @@ app.add_handler(CallbackQueryHandler(finish_callback, pattern="^finish$"))
 app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-print("Bot is running...")
+print("🤖 Bot is running...")
 app.run_polling()
 
 

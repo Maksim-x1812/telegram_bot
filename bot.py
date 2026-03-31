@@ -36,7 +36,7 @@ if not DATABASE_URL:
 
 print("DEBUG DB:", DATABASE_URL)
 
-conn = psycopg2.connect(DATABASE_URL)
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cur = conn.cursor()
 
 cur.execute("""

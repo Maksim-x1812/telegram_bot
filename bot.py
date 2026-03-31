@@ -1,11 +1,14 @@
 import os
+import asyncio
+import logging
+import psycopg2
+from datetime import datetime
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes
 )
-import asyncio
-import logging
 
 #python -m pip install --upgrade pip
 # pip install python-telegram-bot==20.7
@@ -25,6 +28,11 @@ BOT_TOKEN = "8735617587:AAEc6beNLSR7joTPA51IaPrhw__Rw2xyXSM"
 print("DEBUG TOKEN:", BOT_TOKEN)
 """if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables")"""
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+conn = psycopg2.connect(DATABASE_URL)
+cur = conn.cursor()
 
 # --- TEXT ---
 base_text = """Будь ласка, з метою захисту персональних данихнадішліть електронною поштою на адресу i.ponomarchuk@adigestore.it необхідну інформацію:

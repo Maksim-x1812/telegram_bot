@@ -257,19 +257,30 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     doc = update.message.document
     topic = context.user_data["topic"]
 
+    await update.message.reply_text("⏳ Отримую файл...")
+
     os.makedirs("downloads", exist_ok=True)
     file_path = f"downloads/{user.id}_{topic}_{doc.file_name}"
 
-    file = await update.bot.get_file(doc.file_id)
-    await file.download_to_drive(file_path)
+    try:
+        tg_file = await context.bot.get_file(doc.file_id)
+        await tg_file.download_to_drive(file_path)
 
-    context.user_data["files"].append(file_path)
+        context.user_data.setdefault("files", []).append(file_path)
 
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
-        [InlineKeyboardButton("Назад", callback_data="back")]
-    ])
-    await update.message.reply_text(f"✅ Файл отримано ({len(context.user_data['files'])})", reply_markup=kb)
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
+            [InlineKeyboardButton("Назад", callback_data="back")]
+        ])
+
+        await update.message.reply_text(
+            f"✅ Файл збережено ({len(context.user_data['files'])})",
+            reply_markup=kb
+        )
+
+    except Exception as e:
+        logging.error(f"Download error: {e}")
+        await update.message.reply_text("❌ Помилка при отриманні файлу, спробуйте ще раз.")
 
 # --- MAIN ---
 app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -281,8 +292,10 @@ app.add_handler(CallbackQueryHandler(finish_callback, pattern="^finish$"), group
 app.add_handler(CallbackQueryHandler(button), group=1)
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+app.add_handler(MessageHandler(filters.Document.ALL, handle_document), group=0)
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text), group=1)
+
 
 print("Bot is running...")
 app.run_polling()

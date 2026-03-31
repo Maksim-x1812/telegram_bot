@@ -34,6 +34,18 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
 
+cur.execute("""
+CREATE TABLE IF NOT EXISTS user_files (
+    id SERIAL PRIMARY KEY,
+    user_id BIGINT,
+    username TEXT,
+    file_id TEXT,
+    file_name TEXT,
+    created_at TIMESTAMP
+)
+""")
+conn.commit()
+
 # --- TEXT ---
 base_text = """Будь ласка, з метою захисту персональних данихнадішліть електронною поштою на адресу i.ponomarchuk@adigestore.it необхідну інформацію:
 
@@ -109,6 +121,25 @@ async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Дякую за звернення. Після відправки листа я зв'яжусь із Вами телефоном для персональної консультації з Вашого питання.\nІрина Гертнер"
     )
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+    doc = update.message.document
+
+    user_id = user.id
+    username = user.username
+    file_id = doc.file_id
+    file_name = doc.file_name
+
+    # Save to DB
+    cur.execute(
+        "INSERT INTO user_files (user_id, username, file_id, file_name, created_at) VALUES (%s, %s, %s, %s, %s)",
+        (user_id, username, file_id, file_name, datetime.now())
+    )
+    conn.commit()
+
+    await update.message.reply_text("Файл отримано та збережено ✅")
+
 
 # --- MAIN ---
 app = ApplicationBuilder().token(BOT_TOKEN).build()

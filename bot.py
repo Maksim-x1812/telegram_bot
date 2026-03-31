@@ -21,10 +21,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-print("ALL ENV:", os.environ)
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-#BOT_TOKEN = "8735617587:AAEc6beNLSR7joTPA51IaPrhw__Rw2xyXSM"
 
 #print("DEBUG TOKEN:", BOT_TOKEN)
 """if not BOT_TOKEN:
@@ -33,10 +30,6 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 print("DEBUG DB:", DATABASE_URL)
-if not DATABASE_URL:
-    raise ValueError("No DATABASE_URL found")
-
-
 
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cur = conn.cursor()

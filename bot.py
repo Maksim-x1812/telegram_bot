@@ -123,6 +123,7 @@ async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Надсилаючи файли, ви погоджуєтесь на обробку персональних даних.\nВаші дані використовуються лише для обробки запиту.")
     user = update.message.from_user
     doc = update.message.document
 
@@ -131,6 +132,13 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_id = doc.file_id
     file_name = doc.file_name
 
+    file = await context.bot.get_file(file_id)
+
+    os.makedirs("downloads", exist_ok=True)
+
+    await file.download_to_drive(f"downloads/{file_name}")
+
+    
     # Save to DB
     cur.execute(
         "INSERT INTO user_files (user_id, username, file_id, file_name, created_at) VALUES (%s, %s, %s, %s, %s)",
@@ -140,12 +148,16 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("Файл отримано та збережено ✅")
 
+async def download_file(context, file_id, file_name):
+    file = await context.bot.get_file(file_id)
+    await file.download_to_drive(file_name)
 
 # --- MAIN ---
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
+app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_reply))
 
 app.run_polling()

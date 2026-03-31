@@ -12,7 +12,7 @@ from telegram.ext import (
 # --- CONFIG ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
-#ADMIN_ID = 
+ADMIN_ID = 123456789  # replace with your Telegram ID
 
 # --- LOGGING ---
 logging.basicConfig(
@@ -149,12 +149,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             # All questions answered → ask for documents
             context.user_data["state"] = "WAITING_FOR_FILES"
+            finish_kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
+                [InlineKeyboardButton("Назад", callback_data="back")]
+            ])
             await update.message.reply_text(
-                "Дякую! Тепер надішліть документи (можна кілька файлів)."
+                "Дякую! Тепер надішліть документи (можна кілька файлів).",
+                reply_markup=finish_kb
             )
     elif state == "WAITING_FOR_FILES":
+        finish_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
+            [InlineKeyboardButton("Назад", callback_data="back")]
+        ])
         await update.message.reply_text(
-            "📎 Будь ласка, надішліть файли або натисніть /done коли завершите."
+            "📎 Будь ласка, надішліть файли або натисніть «Завершити».",
+            reply_markup=finish_kb
         )
     else:
         await update.message.reply_text(
@@ -183,17 +193,26 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["files"] = []
     context.user_data["files"].append(file_path)
 
+    finish_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
+        [InlineKeyboardButton("Назад", callback_data="back")]
+    ])
     await update.message.reply_text(
-        f"✅ Файл отримано ({len(context.user_data['files'])})"
+        f"✅ Файл отримано ({len(context.user_data['files'])})\n"
+        "Надішліть ще або натисніть «Завершити».",
+        reply_markup=finish_kb
     )
 
-# --- FINISH FORM ---
-async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- FINISH CALLBACK ---
+async def finish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
     if context.user_data.get("state") != "WAITING_FOR_FILES":
-        await update.message.reply_text("❗ Спочатку оберіть послугу та заповніть дані.")
+        await query.answer("Спочатку оберіть послугу та заповніть дані.", show_alert=True)
         return
 
-    user = update.message.from_user
+    user = query.from_user
     topic = context.user_data["topic"]
     answers = context.user_data.get("answers", {})
     files = context.user_data.get("files", [])
@@ -236,14 +255,17 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except: pass
 
     context.user_data.clear()
-    await update.message.reply_text("✅ Дякую! Дані та файли отримані.", reply_markup=main_menu_keyboard())
+    await query.edit_message_text(
+        "✅ Дякую! Дані та файли отримані.",
+        reply_markup=main_menu_keyboard()
+    )
 
 # --- MAIN ---
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("done", done))
 app.add_handler(CallbackQueryHandler(button))
+app.add_handler(CallbackQueryHandler(finish_callback, pattern="^finish$"))
 app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 

@@ -11,7 +11,7 @@ from telegram.ext import (
 # --- CONFIG ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
-ADMIN_ID = 464552562  # Your admin ID
+ADMIN_ID = 464552562
 
 # --- LOGGING ---
 logging.basicConfig(
@@ -23,23 +23,16 @@ logging.basicConfig(
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cur = conn.cursor()
 
-# Create tables
 cur.execute("""
 CREATE TABLE IF NOT EXISTS user_requests (
     id SERIAL PRIMARY KEY,
     user_id BIGINT,
     username TEXT,
     topic TEXT,
-    cognome_nome TEXT,
-    indirizzo TEXT,
-    telefono TEXT,
-    whatsapp TEXT,
-    stato_familia TEXT,
-    professione TEXT,
-    note TEXT,
     created_at TIMESTAMP
 )
 """)
+
 cur.execute("""
 CREATE TABLE IF NOT EXISTS user_files (
     id SERIAL PRIMARY KEY,
@@ -48,19 +41,23 @@ CREATE TABLE IF NOT EXISTS user_files (
     created_at TIMESTAMP
 )
 """)
+
 conn.commit()
 
-# --- QUESTIONS ---
-questions = [
-    ("cognome_nome", "1. Введіть ваше ім'я та прізвище:"),
-    ("indirizzo", "2. Введіть вашу адресу проживання:"),
-    ("telefono", "3. Введіть номер телефону італійський:"),
-    ("whatsapp", "4. Введіть ваш WhatsApp:"),
-    ("stato_familia", "5. Введіть ваш сімейний стан:"),
-    ("professione", "6. Введіть вашу професію:"),
-    ("note", "7. Будь-які додаткові нотатки:")
-]
+# --- QUESTIONS (NOW JUST DISPLAYED) ---
+questions_text = """
+📝 Дані, які потрібно заповнити у формі:
 
+1. Ім'я та прізвище
+2. Адреса проживання
+3. Номер телефону (італійський)
+4. WhatsApp
+5. Сімейний стан
+6. Професія
+7. Додаткові нотатки
+"""
+
+# --- DOCUMENTS ---
 docs_map = {
     "AUTO": "📄 Потрібно надіслати:\n- Carta d'identità\n- Patente\n- Libretto",
     "CASA": "📄 Потрібно надіслати:\n- Carta d'identità",
@@ -71,7 +68,18 @@ docs_map = {
     "LUCE/GAS": "📄 Потрібно надіслати:\n- Carta d'identità\n- Bollette"
 }
 
-# --- MENUS ---
+# --- GOOGLE FORMS ---
+form_links = {
+    "AUTO": "https://forms.gle/your_auto_form",
+    "CASA": "https://forms.gle/your_casa_form",
+    "SALUTE": "https://forms.gle/your_salute_form",
+    "ALTRO": "https://forms.gle/your_altro_form",
+    "VITA": "https://forms.gle/your_vita_form",
+    "PENSIONE": "https://forms.gle/your_pensione_form",
+    "LUCE/GAS": "https://forms.gle/your_energy_form"
+}
+
+# --- MENU ---
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("СТРАХУВАННЯ", callback_data="insurance")],
@@ -83,43 +91,31 @@ def main_menu_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
-        "Мене звуть Ірина Гертнер.\nЯ вітаю Вас в офісі фінансових рішень для українців в Італії\nЧим можу Вам допомогти?",
+        "Мене звуть Ірина Гертнер.\n"
+        "Я вітаю Вас в офісі фінансових рішень для українців в Італії\n"
+        "Чим можу Вам допомогти?",
         reply_markup=main_menu_keyboard()
     )
 
-# ---------------------------------------------------------
-# FIXED: FINISH handler first so that button() does NOT eat it
-# ---------------------------------------------------------
+# --- FINISH ---
 async def finish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     if context.user_data.get("state") != "WAITING_FOR_FILES":
-        await query.answer("Спочатку будь ласка завершіть форму.", show_alert=True)
+        await query.answer("Спочатку оберіть послугу.", show_alert=True)
         return
 
     user = query.from_user
     topic = context.user_data["topic"]
-    answers = context.user_data.get("answers", {})
     files = context.user_data.get("files", [])
 
-    # Save form
+    # Save request
     cur.execute("""
-        INSERT INTO user_requests
-        (user_id, username, topic, cognome_nome, indirizzo, telefono, whatsapp, stato_familia, professione, note, created_at)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        INSERT INTO user_requests (user_id, username, topic, created_at)
+        VALUES (%s,%s,%s,%s)
         RETURNING id
-    """, (
-        user.id, user.username, topic,
-        answers.get("cognome_nome"),
-        answers.get("indirizzo"),
-        answers.get("telefono"),
-        answers.get("whatsapp"),
-        answers.get("stato_familia"),
-        answers.get("professione"),
-        answers.get("note"),
-        datetime.now()
-    ))
+    """, (user.id, user.username, topic, datetime.now()))
     request_id = cur.fetchone()[0]
     conn.commit()
 
@@ -134,8 +130,10 @@ async def finish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Notify admin
     msg = (
         f"📥 Новий клієнт\n"
-        f"👤 @{user.username}\n🆔 {user.id}\n"
-        f"📂 {topic}\n📎 {len(files)} файлів"
+        f"👤 @{user.username}\n"
+        f"🆔 {user.id}\n"
+        f"📂 {topic}\n"
+        f"📎 {len(files)} файлів"
     )
     await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
 
@@ -148,18 +146,15 @@ async def finish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
 
     await query.edit_message_text(
-        "✅ Дякую! Дані та файли отримані.\n\nЧим можу Вам допомогти?",
+        "✅ Дякую! Дані отримані.\n\nЧим можу Вам допомогти?",
         reply_markup=main_menu_keyboard()
     )
 
-# ---------------------------------------------------------
-# BUTTON HANDLER — corrected so "finish" is ignored
-# ---------------------------------------------------------
+# --- BUTTONS ---
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # prevent finish from being processed here
     if query.data == "finish":
         return
 
@@ -186,51 +181,36 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("Оберіть категорію:", reply_markup=InlineKeyboardMarkup(kb))
         return
 
-    # final topic (AUTO, VITA etc)
+    # topic selected
     topic = query.data
     context.user_data["topic"] = topic
-    context.user_data["answers"] = {}
-    context.user_data["current_q"] = 0
     context.user_data["files"] = []
-    context.user_data["state"] = "FILLING_FORM"
+    context.user_data["state"] = "WAITING_FOR_FILES"
 
-    required_docs = docs_map.get(topic, "Документи не потрібні.")
+    required_docs = docs_map.get(topic, "")
+    form_link = form_links.get(topic, "https://forms.gle/default")
 
     await query.edit_message_text(
         f"📌 Тема: {topic}\n\n"
+        f"{questions_text}\n\n"
+        f"📝 Заповніть форму:\n{form_link}\n\n"
         f"{required_docs}\n\n"
-        "Тепер введемо ваші дані."
+        "❗ Після заповнення форми надішліть документи тут."
     )
 
-    await query.message.reply_text(questions[0][1])
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
+        [InlineKeyboardButton("Назад", callback_data="back")]
+    ])
 
-# ---------------------------------------------------------
-# HANDLE TEXT INPUT
-# ---------------------------------------------------------
+    await query.message.reply_text(
+        "📎 Очікую на ваші файли 👇",
+        reply_markup=kb
+    )
+
+# --- HANDLE TEXT ---
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    state = context.user_data.get("state")
-
-    if state == "FILLING_FORM":
-        idx = context.user_data["current_q"]
-        key, _ = questions[idx]
-        context.user_data["answers"][key] = update.message.text
-        idx += 1
-
-        if idx < len(questions):
-            context.user_data["current_q"] = idx
-            await update.message.reply_text(questions[idx][1])
-        else:
-            context.user_data["state"] = "WAITING_FOR_FILES"
-            kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
-                [InlineKeyboardButton("Назад", callback_data="back")]
-            ])
-            await update.message.reply_text(
-                "Дякую! Тепер надішліть документи (можна кілька файлів).",
-                reply_markup=kb
-            )
-
-    elif state == "WAITING_FOR_FILES":
+    if context.user_data.get("state") == "WAITING_FOR_FILES":
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("✅ Завершити", callback_data="finish")],
             [InlineKeyboardButton("Назад", callback_data="back")]
@@ -245,12 +225,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_menu_keyboard()
         )
 
-# ---------------------------------------------------------
-# HANDLE DOCUMENTS
-# ---------------------------------------------------------
+# --- HANDLE DOCUMENTS ---
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("state") != "WAITING_FOR_FILES":
-        await update.message.reply_text("❗ Спочатку оберіть послугу та заповніть дані.")
+        await update.message.reply_text("❗ Спочатку оберіть послугу.")
         return
 
     user = update.message.from_user
@@ -280,22 +258,18 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         logging.error(f"Download error: {e}")
-        await update.message.reply_text("❌ Помилка при отриманні файлу, спробуйте ще раз.")
+        await update.message.reply_text("❌ Помилка при отриманні файлу.")
 
 # --- MAIN ---
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-# IMPORTANT: finish goes FIRST
 app.add_handler(CallbackQueryHandler(finish_callback, pattern="^finish$"), group=0)
-
-# all other buttons
 app.add_handler(CallbackQueryHandler(button), group=1)
 
 app.add_handler(CommandHandler("start", start))
 
 app.add_handler(MessageHandler(filters.Document.ALL, handle_document), group=0)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text), group=1)
-
 
 print("Bot is running...")
 app.run_polling()

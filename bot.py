@@ -41,7 +41,7 @@ docs_map = {
 
 # --- GOOGLE FORMS ---
 form_links = {
-    "AUTO": "https://forms.gle/your_auto_form",
+    "AUTO": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
     "CASA": "https://forms.gle/your_casa_form",
     "SALUTE": "https://forms.gle/your_salute_form",
     "ALTRO": "https://forms.gle/your_altro_form",
@@ -105,8 +105,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         f"📌 Тема: {topic}\n\n"
         f"{questions_text}\n\n"
-        f"📝 Заповніть форму:\n{form_link}\n\n"
         f"{required_docs}\n\n"
+        f"📝 Заповніть форму:\n{form_link}\n\n"
         "❗ Після заповнення форми підготуйте документи — з вами зв'яжуться."
     )
 

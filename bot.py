@@ -112,6 +112,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text(
         "👇 Оберіть наступну дію:",
         reply_markup=main_menu_keyboard()
+    )
 
 # --- HANDLE RANDOM TEXT ---
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):

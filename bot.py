@@ -42,12 +42,12 @@ docs_map = {
 # --- GOOGLE FORMS ---
 form_links = {
     "AUTO": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
-    "CASA": "https://forms.gle/your_casa_form",
-    "SALUTE": "https://forms.gle/your_salute_form",
-    "ALTRO": "https://forms.gle/your_altro_form",
-    "VITA": "https://forms.gle/your_vita_form",
-    "PENSIONE": "https://forms.gle/your_pensione_form",
-    "LUCE/GAS": "https://forms.gle/your_energy_form"
+    "CASA": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
+    "SALUTE": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
+    "ALTRO": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
+    "VITA": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
+    "PENSIONE": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header",
+    "LUCE/GAS": "https://docs.google.com/forms/d/e/1FAIpQLSfMBJRW42yIYxjdxT0tICiQTptlykHze6z2aZWgPjFq27g9Qw/viewform?usp=header"
 }
 
 # --- MENU ---
@@ -123,6 +123,7 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+app.add_handler(CallbackQueryHandler(button))
 
 print("Bot is running...")
 app.run_polling()

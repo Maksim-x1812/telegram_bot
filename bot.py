@@ -109,6 +109,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📝 Заповніть форму:\n{form_link}\n\n"
         "❗ Після заповнення форми підготуйте документи — з вами зв'яжуться."
     )
+    await query.message.reply_text(
+        "👇 Оберіть наступну дію:",
+        reply_markup=main_menu_keyboard()
 
 # --- HANDLE RANDOM TEXT ---
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -123,7 +126,7 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-app.add_handler(CallbackQueryHandler(button))
+
 
 print("Bot is running...")
 app.run_polling()
